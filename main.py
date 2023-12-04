@@ -34,7 +34,7 @@ def get_matrix_from_edges(g_sorted, n):
 
 def get_process_tuples(n):
     tuples_arr = []
-    graphs_per_process = 1
+    graphs_per_process = 50000
     batch_amount = ceil(n / graphs_per_process)
     for i in range(batch_amount):
         from_idx = i * graphs_per_process
@@ -44,18 +44,19 @@ def get_process_tuples(n):
     return tuples_arr
 
 
-def fill_characteristics_tables(first_characteristic_name, second_characteristic_name, ch_dict, graph_list,
-                                upper_matrix):
-    key = str(first_characteristic_name) + '_' + str(second_characteristic_name)
-    fill_dict_with_int_values(ch_dict, key)
+def fill_characteristics_tables(first, second, name_1, name_2, dicts, upper_matrix):
+    key = f"{first}_{second}"
+    counter_dict_key = f"{name_1}_{name_2}"
+    list_dict_key = f"{counter_dict_key}_graphs"
+    fill_dict_with_int_values(dicts[counter_dict_key], key)
 
-    if key in graph_list:
-        if graph_list[key] is not None:
-            graph_list[key].append(upper_matrix)
-            if len(graph_list[key]) > 10:
-                graph_list[key] = None
+    if key in dicts[list_dict_key]:
+        if dicts[list_dict_key][key] is not None:
+            dicts[list_dict_key][key].append(upper_matrix)
+            if len(dicts[list_dict_key][key]) > 10:
+                dicts[list_dict_key][key] = None
     else:
-        graph_list[key] = [upper_matrix]
+        dicts[list_dict_key][key] = [upper_matrix]
 
 
 class Graphs:
@@ -79,65 +80,62 @@ class Graphs:
             5: get_process_tuples(12),
             6: get_process_tuples(56),
             7: get_process_tuples(456),
-            8: get_process_tuples(6880)
+            8: get_process_tuples(6880),
+            9: get_process_tuples(191536),
+            10: get_process_tuples(9733056),
+            11: get_process_tuples(903753248)
         }
-        self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30}  # количество символов в строке + 2
+        self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30, 9: 38, 10: 47, 11: 57}  # количество символов в строке + 2
 
     def gen_by_parts(self, args):
         string_bytes = self.bytes_per_string[self.g_n]
-        height_width_dict = {}
-        height_width_graphs_list = {}
-        width_order_dict = {}
-        width_order_graphs_list = {}
-        order_height_dict = {}
-        order_height_graphs_list = {}
-        order_dict = {}
-        height_dict = {}
-        width_dict = {}
+        dicts = {
+            "height_width": {},
+            "height_width_graphs": {},
+            "width_order": {},
+            "width_order_graphs": {},
+            "order_height": {},
+            "order_height_graphs": {},
+            "order": {},
+            "height": {},
+            "width": {},
+        }
 
-        start = args[0]
-        end = args[1]
+        start, end = args
         with open("in_files/" + str(self.g_n) + 'in.txt', 'r') as graphs_file:
             graphs_file.seek(string_bytes * start)
             while True:
                 graph = graphs_file.readline().rstrip()
                 # print('graph', graph, 'start', start, 'end', end, 'string_bytes', string_bytes, 'graphs_file.tell()', graphs_file.tell(), 'cond', graphs_file.tell() > string_bytes * (end + 1))
-                if not graph:
-                    break
-
-                if graphs_file.tell() > string_bytes * (end + 1):
+                if not graph or graphs_file.tell() > string_bytes * (end + 1):
                     break
 
                 upper_matrix_form = graph.strip()
-                tournament_edges_list, adjacency_list, vertexes = FormatInput(upper_matrix_form,
-                                                                              self.g_n).upperTriangleToEdgeList()
-                factor_arr = Tournaments(tournament_edges_list, adjacency_list, vertexes, self.g_n,
-                                         upper_matrix_form).main_fun()
+                edges_list, adj_list, vertexes = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
+                factor_arr = Tournaments(edges_list, adj_list, vertexes, self.g_n, upper_matrix_form).main_fun()
                 lattice = Lattice(factor_arr)
-                lattice_edges, lattice_width, lattice_height = lattice.main_fun()
-                G = nx.Graph(lattice_edges)
-                lattice_order = G.order()
-                fill_dict_with_int_values(order_dict, lattice_order)
-                fill_dict_with_int_values(height_dict, lattice_height)
-                fill_dict_with_int_values(width_dict, lattice_width)
+                edges, width, height = lattice.main_fun()
+                G = nx.Graph(edges)
+                order = G.order()
 
-                fill_characteristics_tables(lattice_height, lattice_width, height_width_dict, height_width_graphs_list,
-                                            upper_matrix_form)
-                fill_characteristics_tables(lattice_width, lattice_order, width_order_dict, width_order_graphs_list,
-                                            upper_matrix_form)
-                fill_characteristics_tables(lattice_order, lattice_height, order_height_dict, order_height_graphs_list,
-                                            upper_matrix_form)
+                fill_dict_with_int_values(dicts["order"], order)
+                fill_dict_with_int_values(dicts["height"], height)
+                fill_dict_with_int_values(dicts["width"], width)
+
+                fill_characteristics_tables(height, width, 'height', 'width', dicts, upper_matrix_form)
+                fill_characteristics_tables(width, order, 'width', 'order', dicts, upper_matrix_form)
+                fill_characteristics_tables(order, height, 'order', 'height', dicts, upper_matrix_form)
 
         print('Done ', start, '-', end)
-        return height_width_dict, height_width_graphs_list, width_order_dict, width_order_graphs_list, \
-               order_height_dict, order_height_graphs_list, order_dict, height_dict, width_dict
+        return list(dicts.values())
 
     def find_all_characteristics(self):
-        pool = multiprocessing.Pool(processes=6)
+        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
         res = pool.map(self.gen_by_parts, self.processes_parts[self.g_n])
 
         for (height_width_dict, height_width_graphs_list, width_order_dict, width_order_graphs_list, order_height_dict,
              order_height_graphs_list, order_dict, height_dict, width_dict) in res:
+
             for key, value in order_dict.items():
                 fill_dict_with_int_values(self.order_dict, key, value)
 
@@ -180,9 +178,13 @@ class Graphs:
         return
 
     def saveGeneralCharachteristicsToFiles(self):
-        order_dict = dict(sorted(self.order_dict.items()))
-        height_dict = dict(sorted(self.height_dict.items()))
-        width_dict = dict(sorted(self.width_dict.items()))
+        order_dict = {int(k): v for k, v in self.order_dict.items()}
+        height_dict = {int(k): v for k, v in self.height_dict.items()}
+        width_dict = {int(k): v for k, v in self.width_dict.items()}
+
+        order_dict = dict(sorted(order_dict.items()))
+        height_dict = dict(sorted(height_dict.items()))
+        width_dict = dict(sorted(width_dict.items()))
 
         target = str(self.g_n) + '_characteristics.txt'
         with open(target, encoding='UTF-8', mode='w') as fileCharacteristics:
@@ -201,38 +203,30 @@ class Graphs:
                 if height_dict[i]:
                     fileCharacteristics.write(str(i) + ': ' + str(height_dict[i]) + '\n')
 
+    def save_sorted_int_table_to_file(self, dict_to_sort, filename):
+        sorted_items = sorted(dict_to_sort.items(), key=lambda item: item[1])
+        with open(str(self.g_n) + filename, 'w') as file:
+            for key, value in sorted_items:
+                if value is not None and value:
+                    print(f"{key}: {value}", file=file)
+
+    def save_sorted_by_len_graph_dict_to_file(self, dict_to_sort, filename):
+        sorted_items = sorted(dict_to_sort.items(), key=lambda item: len(item[1]) if item[1] else 0)
+        with open(str(self.g_n) + filename, 'w') as file:
+            for key, value in sorted_items:
+                if value is not None and len(value) > 0:
+                    print(key + ": " + str(len(value)) + '\n' + '\n'.join(value), file=file, sep='\n')
+
     def main_fun(self):
         self.find_all_characteristics()
 
-        with open(str(self.g_n) + 'table_height_width.txt', 'w') as table_file:
-            for key, value in self.height_width_dict.items():
-                if value is not None and value:
-                    print(key + ": " + str(value), file=table_file, sep='\n')
+        self.save_sorted_int_table_to_file(self.height_width_dict, 'table_height_width.txt')
+        self.save_sorted_int_table_to_file(self.width_order_dict, 'table_width_order.txt')
+        self.save_sorted_int_table_to_file(self.order_height_dict, 'table_order_height.txt')
 
-        with open(str(self.g_n) + 'table_width_order.txt', 'w') as table_file:
-            for key, value in self.width_order_dict.items():
-                if value is not None and value:
-                    print(key + ": " + str(value), file=table_file, sep='\n')
-
-        with open(str(self.g_n) + 'table_order_height.txt', 'w') as table_file:
-            for key, value in self.order_height_dict.items():
-                if value is not None and value:
-                    print(key + ": " + str(value), file=table_file, sep='\n')
-
-        with open(str(self.g_n) + 'height_width_graphs_list.txt', 'w') as graphs_list_file:
-            for key, value in self.height_width_graphs_list.items():
-                if value is not None and len(value) > 0:
-                    print(key + ": " + str(len(value)) + '\n' + '\n'.join(value), file=graphs_list_file, sep='\n')
-
-        with open(str(self.g_n) + 'width_order_graphs_list.txt', 'w') as graphs_list_file:
-            for key, value in self.width_order_graphs_list.items():
-                if value is not None and len(value) > 0:
-                    print(key + ": " + str(len(value)) + '\n' + '\n'.join(value), file=graphs_list_file, sep='\n')
-
-        with open(str(self.g_n) + 'order_height_graphs_list.txt', 'w') as graphs_list_file:
-            for key, value in self.order_height_graphs_list.items():
-                if value is not None and len(value) > 0:
-                    print(key + ": " + str(len(value)) + '\n' + '\n'.join(value), file=graphs_list_file, sep='\n')
+        self.save_sorted_by_len_graph_dict_to_file(self.height_width_graphs_list, 'height_width_graphs_list.txt')
+        self.save_sorted_by_len_graph_dict_to_file(self.width_order_graphs_list, 'width_order_graphs_list.txt')
+        self.save_sorted_by_len_graph_dict_to_file(self.order_height_graphs_list, 'order_height_graphs_list.txt')
 
         self.saveGeneralCharachteristicsToFiles()
 
