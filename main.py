@@ -9,7 +9,7 @@ from tournaments.formatInput import FormatInput
 
 def fill_dict_with_int_values(dict, idx, value=None):
     increment = value if value else 1
-    if not idx in dict:
+    if not str(idx) in dict:
         dict[str(idx)] = increment
     else:
         dict[str(idx)] += increment
