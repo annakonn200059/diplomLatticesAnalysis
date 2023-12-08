@@ -72,6 +72,7 @@ class Graphs:
         self.width_order_graphs_list = {}
         self.order_height_dict = {}  # таблица кол-во-высота
         self.order_height_graphs_list = {}
+        self.res_files_directory = 'out_files/'
 
         self.g_n = v_n
         self.processes_parts = {
@@ -186,7 +187,7 @@ class Graphs:
         height_dict = dict(sorted(height_dict.items()))
         width_dict = dict(sorted(width_dict.items()))
 
-        target = str(self.g_n) + '_characteristics.txt'
+        target = self.res_files_directory + str(self.g_n) + '_characteristics.txt'
         with open(target, encoding='UTF-8', mode='w') as fileCharacteristics:
             fileCharacteristics.write('Порядок:\n')
             for i in order_dict:
@@ -205,14 +206,14 @@ class Graphs:
 
     def save_sorted_int_table_to_file(self, dict_to_sort, filename):
         sorted_items = sorted(dict_to_sort.items(), key=lambda item: item[1])
-        with open(str(self.g_n) + filename, 'w') as file:
+        with open(self.res_files_directory + str(self.g_n) + filename, 'w') as file:
             for key, value in sorted_items:
                 if value is not None and value:
                     print(f"{key}: {value}", file=file)
 
     def save_sorted_by_len_graph_dict_to_file(self, dict_to_sort, filename):
         sorted_items = sorted(dict_to_sort.items(), key=lambda item: len(item[1]) if item[1] else 0)
-        with open(str(self.g_n) + filename, 'w') as file:
+        with open(self.res_files_directory + str(self.g_n) + filename, 'w') as file:
             for key, value in sorted_items:
                 if value is not None and len(value) > 0:
                     print(key + ": " + str(len(value)) + '\n' + '\n'.join(value), file=file, sep='\n')
