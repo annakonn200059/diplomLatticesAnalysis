@@ -148,9 +148,9 @@ cython_debug/
 Решетки и их характеристики
 tests
 naugthyTests
-*.txt
 *.doc
 *.docx
 *.zip
 *.pptx
 *.pdf
+in_files/10in.txt
