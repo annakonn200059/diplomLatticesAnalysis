@@ -53,7 +53,7 @@ class FormatInput:
         return edges, adjacency_list, nodes_list, upper_matrix_form
 
     def upperTriangleToEdgeList(self):
-        #print(self.upper_matrix_form)
+        print(self.upper_matrix_form)
         # количество элементов над главной диагональю матрицы смежности
         upper_form_len = (self.n * (self.n - 1)) // 2
         if not upper_form_len == len(self.upper_matrix_form):
