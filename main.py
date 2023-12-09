@@ -105,6 +105,7 @@ class Graphs:
         start, end = args
         print(start, end)
         with open("in_files/" + str(self.g_n) + 'in.txt', 'r') as graphs_file:
+            print('seek_to', string_bytes * start)
             graphs_file.seek(string_bytes * start)
             while True:
                 graph = graphs_file.readline().rstrip()
