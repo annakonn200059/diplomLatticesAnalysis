@@ -34,7 +34,7 @@ def get_matrix_from_edges(g_sorted, n):
 
 def get_process_tuples(n):
     tuples_arr = []
-    graphs_per_process = 50000
+    graphs_per_process = 1000
     batch_amount = ceil(n / graphs_per_process)
     for i in range(batch_amount):
         from_idx = i * graphs_per_process
