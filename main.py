@@ -5,6 +5,14 @@ import multiprocessing
 from lattices.lattice import Lattice
 from tournaments.tournaments import Tournaments
 from tournaments.formatInput import FormatInput
+import logging
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def read_file_to_memory(file_path):
+    with open(file_path, 'r') as file:
+        return file.readlines()
 
 
 def fill_dict_with_int_values(dict, idx, value=None):
@@ -75,21 +83,22 @@ class Graphs:
         self.res_files_directory = 'out_files/'
 
         self.g_n = v_n
-        self.processes_parts = {
-            3: get_process_tuples(2),
-            4: get_process_tuples(4),
-            5: get_process_tuples(12),
-            6: get_process_tuples(56),
-            7: get_process_tuples(456),
-            8: get_process_tuples(6880),
-            9: get_process_tuples(191536),
-            #10: get_process_tuples(9733056),
-            #11: get_process_tuples(903753248)
-        }
-        self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30, 9: 38, 10: 47, 11: 57}  # количество символов в строке + 2
+        # self.processes_parts = {
+        #     3: get_process_tuples(2),
+        #     4: get_process_tuples(4),
+        #     5: get_process_tuples(12),
+        #     6: get_process_tuples(56),
+        #     7: get_process_tuples(456),
+        #     8: get_process_tuples(6880),
+        #     9: get_process_tuples(191536),
+        #     #10: get_process_tuples(9733056),
+        #     #11: get_process_tuples(903753248)
+        # }
+        #self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30, 9: 38, 10: 47, 11: 57}  # количество символов в строке + 2
 
-    def gen_by_parts(self, args):
-        string_bytes = self.bytes_per_string[self.g_n]
+    def gen_by_parts(self, data_part):
+        logging.info(f"Process {multiprocessing.current_process().name} started working")
+        #string_bytes = self.bytes_per_string[self.g_n]
         dicts = {
             "height_width": {},
             "height_width_graphs": {},
@@ -102,37 +111,48 @@ class Graphs:
             "width": {},
         }
 
-        start, end = args
-        with open("in_files/" + str(self.g_n) + 'in.txt', 'r') as graphs_file:
-            graphs_file.seek(string_bytes * start)
-            while True:
-                graph = graphs_file.readline().rstrip()
-                # print('graph', graph, 'start', start, 'end', end, 'string_bytes', string_bytes, 'graphs_file.tell()', graphs_file.tell(), 'cond', graphs_file.tell() > string_bytes * (end + 1))
-                if not graph or graphs_file.tell() > string_bytes * (end + 1):
-                    break
+        for line in data_part:
+            graph = line.strip()
+            # print('graph', graph, 'start', start, 'end', end, 'string_bytes', string_bytes, 'graphs_file.tell()', graphs_file.tell(), 'cond', graphs_file.tell() > string_bytes * (end + 1))
+            if not graph:
+                break
 
-                upper_matrix_form = graph.strip()
-                edges_list, adj_list, vertexes = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
-                factor_arr = Tournaments(edges_list, adj_list, vertexes, self.g_n, upper_matrix_form).main_fun()
-                lattice = Lattice(factor_arr)
-                edges, width, height = lattice.main_fun()
-                G = nx.Graph(edges)
-                order = G.order()
+            upper_matrix_form = graph.strip()
+            edges_list, adj_list, vertexes = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
+            factor_arr = Tournaments(edges_list, adj_list, vertexes, self.g_n, upper_matrix_form).main_fun()
+            lattice = Lattice(factor_arr)
+            edges, width, height = lattice.main_fun()
+            G = nx.Graph(edges)
+            order = G.order()
 
-                fill_dict_with_int_values(dicts["order"], order)
-                fill_dict_with_int_values(dicts["height"], height)
-                fill_dict_with_int_values(dicts["width"], width)
+            fill_dict_with_int_values(dicts["order"], order)
+            fill_dict_with_int_values(dicts["height"], height)
+            fill_dict_with_int_values(dicts["width"], width)
 
-                fill_characteristics_tables(height, width, 'height', 'width', dicts, upper_matrix_form)
-                fill_characteristics_tables(width, order, 'width', 'order', dicts, upper_matrix_form)
-                fill_characteristics_tables(order, height, 'order', 'height', dicts, upper_matrix_form)
+            fill_characteristics_tables(height, width, 'height', 'width', dicts, upper_matrix_form)
+            fill_characteristics_tables(width, order, 'width', 'order', dicts, upper_matrix_form)
+            fill_characteristics_tables(order, height, 'order', 'height', dicts, upper_matrix_form)
 
-        print('Done ', start, '-', end)
+        #print('Done ', start, '-', end)
+        logging.info(f"Process {multiprocessing.current_process().name} finished working")
         return list(dicts.values())
 
+    def get_data_parts(self, data):
+        num_processes = min(56, len(data))  # Не создавать больше процессов, чем данных
+        part_size = max(1, len(data) // num_processes)
+        parts = [data[i:i + part_size] for i in range(0, len(data), part_size)]
+        return parts
+
     def find_all_characteristics(self):
+        #multiprocessing.cpu_count()
+        file_path = f"in_files/{self.g_n}in.txt"
+        file_data = read_file_to_memory(file_path)
+
+        # Разбиваем данные файла на части для каждого процесса
+        data_parts = self.get_data_parts(file_data)
+
         pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-        res = pool.map(self.gen_by_parts, self.processes_parts[self.g_n])
+        res = pool.map(self.gen_by_parts, data_parts)
 
         for (height_width_dict, height_width_graphs_list, width_order_dict, width_order_graphs_list, order_height_dict,
              order_height_graphs_list, order_dict, height_dict, width_dict) in res:
