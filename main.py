@@ -83,8 +83,8 @@ class Graphs:
             7: get_process_tuples(456),
             8: get_process_tuples(6880),
             9: get_process_tuples(191536),
-            10: get_process_tuples(9733056),
-            11: get_process_tuples(903753248)
+            #10: get_process_tuples(9733056),
+            #11: get_process_tuples(903753248)
         }
         self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30, 9: 38, 10: 47, 11: 57}  # количество символов в строке + 2
 
@@ -103,10 +103,12 @@ class Graphs:
         }
 
         start, end = args
+        print(start, end)
         with open("in_files/" + str(self.g_n) + 'in.txt', 'r') as graphs_file:
             graphs_file.seek(string_bytes * start)
             while True:
                 graph = graphs_file.readline().rstrip()
+                print('graph', graph)
                 # print('graph', graph, 'start', start, 'end', end, 'string_bytes', string_bytes, 'graphs_file.tell()', graphs_file.tell(), 'cond', graphs_file.tell() > string_bytes * (end + 1))
                 if not graph or graphs_file.tell() > string_bytes * (end + 1):
                     break
@@ -131,7 +133,7 @@ class Graphs:
         return list(dicts.values())
 
     def find_all_characteristics(self):
-        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        pool = multiprocessing.Pool(processes=3)
         res = pool.map(self.gen_by_parts, self.processes_parts[self.g_n])
 
         for (height_width_dict, height_width_graphs_list, width_order_dict, width_order_graphs_list, order_height_dict,
