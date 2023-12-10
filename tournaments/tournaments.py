@@ -23,7 +23,6 @@ class Tournaments:
 
     def main_fun(self, factor_arr):
         #print("Дан орграф: ", "\n", self.edges_list)
-        #print(self.upper_matrix_form)
         g = nx.DiGraph(self.edges_list)
         if not tournament.is_tournament(g):
             print("Данный орграф не является турниром")

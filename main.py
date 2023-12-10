@@ -56,7 +56,7 @@ def fill_characteristics_tables(first, second, name_1, name_2, dicts, upper_matr
 
 
 def get_data_parts(data):
-    num_processes = min(multiprocessing.cpu_count(), len(data))  # Не создавать больше процессов, чем данных
+    num_processes = min(56, len(data))  # Не создавать больше процессов, чем данных
     part_size = max(1, len(data) // num_processes)
     parts = [data[i:i + part_size] for i in range(0, len(data), part_size)]
     return parts
