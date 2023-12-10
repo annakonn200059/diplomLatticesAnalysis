@@ -10,13 +10,15 @@ import logging
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Функция для сравнения ключей
+
+# Функция для сравнения ключей для диаметра
 def sorting_key(key):
     # Помещаем символ '&' в конец сортировки
     if key == 'inf':
         return float('inf')
     # Преобразуем ключи в числа для правильной сортировки
     return int(key)
+
 
 def read_file_to_memory(file_path):
     with open(file_path, 'r') as file:
@@ -38,28 +40,6 @@ def fill_dict_with_list_values(dict, idx, value):
         dict[str(idx)].extend(value)
 
 
-def get_matrix_from_edges(g_sorted, n):
-    matrix = [[0] * n for _ in range(n)]
-    for edge in g_sorted:
-        i, j = edge[0], edge[1]
-        matrix[i][j] = 1
-        matrix[j][i] = 1
-
-    return matrix
-
-
-def get_process_tuples(n):
-    tuples_arr = []
-    graphs_per_process = 2000
-    batch_amount = ceil(n / graphs_per_process)
-    for i in range(batch_amount):
-        from_idx = i * graphs_per_process
-        to_idx = min((i + 1) * graphs_per_process - 1, n - 1)
-        tuples_arr.append((from_idx, to_idx))
-
-    return tuples_arr
-
-
 def fill_characteristics_tables(first, second, name_1, name_2, dicts, upper_matrix):
     key = f"{first}_{second}"
     counter_dict_key = f"{name_1}_{name_2}"
@@ -73,6 +53,13 @@ def fill_characteristics_tables(first, second, name_1, name_2, dicts, upper_matr
                 dicts[list_dict_key][key] = None
     else:
         dicts[list_dict_key][key] = [upper_matrix]
+
+
+def get_data_parts(data):
+    num_processes = min(multiprocessing.cpu_count(), len(data))  # Не создавать больше процессов, чем данных
+    part_size = max(1, len(data) // num_processes)
+    parts = [data[i:i + part_size] for i in range(0, len(data), part_size)]
+    return parts
 
 
 class Graphs:
@@ -151,18 +138,12 @@ class Graphs:
         logging.info(f"Process {multiprocessing.current_process().name} finished working")
         return list(dicts.values())
 
-    def get_data_parts(self, data):
-        num_processes = min(multiprocessing.cpu_count(), len(data))  # Не создавать больше процессов, чем данных
-        part_size = max(1, len(data) // num_processes)
-        parts = [data[i:i + part_size] for i in range(0, len(data), part_size)]
-        return parts
-
     def find_all_characteristics(self):
         file_path = f"in_files/{self.g_n}in.txt"
         file_data = read_file_to_memory(file_path)
 
         # Разбиваем данные файла на части для каждого процесса
-        data_parts = self.get_data_parts(file_data)
+        data_parts = get_data_parts(file_data)
 
         pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
         res = pool.map(self.gen_by_parts, data_parts)

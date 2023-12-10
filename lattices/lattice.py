@@ -1,7 +1,3 @@
-'''
-def findLatticeLevel(self, array):
-return len(max(array.values(), key=lambda j: len(j)))
-'''
 from utils import diff_arrays
 
 

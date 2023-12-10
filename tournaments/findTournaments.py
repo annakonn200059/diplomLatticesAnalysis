@@ -11,27 +11,17 @@ def make_dict_factor_vertexes(factor_graph, vertexes):
 
 
 def find_vertex_edges(v1, v2, i, j, edges_of_factor, adjacency_list):
-    loop = False
-    edge = False
     edges_arr = []
 
-    adjacency_keys = set(adjacency_list.keys())  # Создаем множество ключей из adjacency_list
-
     for k in v1:
-        if k in adjacency_keys:
+        if k in adjacency_list:
             for c in adjacency_list[k]:
-                '''
-                if c in v1:
-                    if not loop:
-                        loop = True
-                        if [i, i] not in edges_of_factor:
-                            edges_arr.append([i, i])
-                            '''
                 if c in v2:
-                    if not edge:
-                        edge = True
-                        if [i, j] not in edges_of_factor:
-                            edges_arr.append([i, j])
+                    # Добавляем ребро, если оно еще не было найдено
+                    if [i, j] not in edges_of_factor:
+                        edges_arr.append([i, j])
+                        break  # Прерываем цикл после добавления ребра
+
     return edges_arr
 
 

@@ -7,15 +7,9 @@ class FormatInput:
         self.adjacency_list = {}
 
     def add_to_adj_list(self, node1, node2):
-        temp = []
         if node1 not in self.adjacency_list:
-            temp.append(node2)
-            self.adjacency_list[node1] = temp
-
-        elif node1 in self.adjacency_list:
-            temp.extend(self.adjacency_list[node1])
-            temp.append(node2)
-            self.adjacency_list[node1] = temp
+            self.adjacency_list[node1] = set()
+        self.adjacency_list[node1].add(node2)
 
     def digraph6_to_directed_edges(self):
         # Извлечение количества вершин из второго символа
@@ -84,23 +78,16 @@ class FormatInput:
             print("Матричная форма не соответствует количеству вершин")
             return
 
-        cur = 0
-        stop = self.n - 1
-        for i in range(0, self.n - 1):
-            column = i + 1
-            for j in range(cur, stop):
-                if j >= len(self.upper_matrix_form):
-                    print("Количество вершин не соответствует введенному турниру")
-                if self.upper_matrix_form[j] == '1':
-                    self.edges_list.append([i, column])
-                    self.add_to_adj_list(i, column)
+        index = 0
+        for i in range(self.n - 1):
+            for j in range(i + 1, self.n):
+                if self.upper_matrix_form[index] == '1':
+                    self.edges_list.append([i, j])
+                    self.add_to_adj_list(i, j)
                 else:
-                    self.edges_list.append([column, i])
-                    self.add_to_adj_list(column, i)
-                column += 1
-            copy_cur = cur
-            cur = stop
-            stop += stop - copy_cur - 1
+                    self.edges_list.append([j, i])
+                    self.add_to_adj_list(j, i)
+                index += 1
 
         diametr = self.tournament_diameter()
         
