@@ -4,7 +4,6 @@ class FormatInput:
         self.n = n
         self.edges_list = []
         self.upper_matrix_form = upper_matrix_form
-        self.vertexes = []
         self.adjacency_list = {}
 
     def add_to_adj_list(self, node1, node2):
@@ -53,7 +52,7 @@ class FormatInput:
         return edges, adjacency_list, nodes_list, upper_matrix_form
 
     def upperTriangleToEdgeList(self):
-        print(self.upper_matrix_form)
+        #print(self.upper_matrix_form)
         # количество элементов над главной диагональю матрицы смежности
         upper_form_len = (self.n * (self.n - 1)) // 2
         if not upper_form_len == len(self.upper_matrix_form):
@@ -70,18 +69,15 @@ class FormatInput:
                 if self.upper_matrix_form[j] == '1':
                     self.edges_list.append([i, column])
                     self.add_to_adj_list(i, column)
-                    self.vertexes.extend([i, column])
                 else:
                     self.edges_list.append([column, i])
                     self.add_to_adj_list(column, i)
-                    self.vertexes.extend([column, i])
                 column += 1
             copy_cur = cur
             cur = stop
             stop += stop - copy_cur - 1
-        self.vertexes = list(set(self.vertexes))
         
-        return self.edges_list, self.adjacency_list, self.vertexes
+        return self.edges_list, self.adjacency_list
 
     def upper_matrix_to_full_matrix(self):
         """

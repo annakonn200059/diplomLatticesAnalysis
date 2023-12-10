@@ -1,7 +1,5 @@
 from networkx.algorithms import tournament
 import networkx as nx
-
-from tournaments.congruences import find_all_congruences
 from tournaments.findTournaments import make_factor_graph_from_factor_arr
 
 
@@ -10,7 +8,6 @@ class Tournaments:
         self.n = n
         self.vertexes = vertexes
         self.edges_list = edges_list
-        self.factor_arr = []
         self.adjacency_list = adjacency_list
         self.tournament_list = []
         self.ans_factor_arr = []
@@ -24,7 +21,7 @@ class Tournaments:
             print("        Список дуг факторграфа")
             print("        ", self.tournament_list[i], "\n")
 
-    def main_fun(self):
+    def main_fun(self, factor_arr):
         #print("Дан орграф: ", "\n", self.edges_list)
         #print(self.upper_matrix_form)
         g = nx.DiGraph(self.edges_list)
@@ -33,19 +30,18 @@ class Tournaments:
             return
         else:
             #print("Является турниром")
-            self.factor_arr = find_all_congruences(self.vertexes, self.n)
             #print('\nТурниры конгруэнций:\n')
-            for i in range(len(self.factor_arr)):
-                for j in self.factor_arr[i][1]:
+            for i in range(len(factor_arr)):
+                for j in factor_arr[i][1]:
                     res = make_factor_graph_from_factor_arr(j, self.adjacency_list, self.vertexes)
                     probable_tournament, factor_vertexes = res[0], res[1]
                     factor_graph = nx.DiGraph(probable_tournament)
                     if len(factor_graph) > 0:
                         if tournament.is_tournament(factor_graph):
-                            self.ans_factor_arr.append([self.factor_arr[i][0][0], factor_vertexes])
+                            self.ans_factor_arr.append([factor_arr[i][0][0], factor_vertexes])
                             #self.tournament_list.append(probable_tournament)
                     if len(factor_graph) == 0:
-                        self.ans_factor_arr.append([self.factor_arr[i][0][0], factor_vertexes])
+                        self.ans_factor_arr.append([factor_arr[i][0][0], factor_vertexes])
                         #self.tournament_list.append(probable_tournament)
             #self.format_output_tournaments()
         return self.ans_factor_arr

@@ -14,8 +14,11 @@ def find_vertex_edges(v1, v2, i, j, edges_of_factor, adjacency_list):
     loop = False
     edge = False
     edges_arr = []
+
+    adjacency_keys = set(adjacency_list.keys())  # Создаем множество ключей из adjacency_list
+
     for k in v1:
-        if k in adjacency_list.keys():
+        if k in adjacency_keys:
             for c in adjacency_list[k]:
                 '''
                 if c in v1:

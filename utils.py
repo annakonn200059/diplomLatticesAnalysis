@@ -1,18 +1,7 @@
 def diff_arrays(arr1, arr2) -> list:
-    list_difference = []
-    for element in arr1:
-        if len(element) == 1 and element[0] not in arr2:
-            list_difference.append(element[0])
-        else:
-            flag = True
-            for j in element:
-                if j in arr2:
-                    flag = False
-                    break
-            if flag:
-                list_difference.append(element)
+    set_arr2 = set(arr2)
+    return [element for element in arr1 if not set(element).intersection(set_arr2)]
 
-    return list_difference
 
 
 def fill_dict(dict, el, upper_matrix_form):

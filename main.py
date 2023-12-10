@@ -3,6 +3,7 @@ from math import ceil
 import time
 import multiprocessing
 from lattices.lattice import Lattice
+from tournaments.congruences import find_all_congruences
 from tournaments.tournaments import Tournaments
 from tournaments.formatInput import FormatInput
 import logging
@@ -95,6 +96,9 @@ class Graphs:
         #     #11: get_process_tuples(903753248)
         # }
         #self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30, 9: 38, 10: 47, 11: 57}  # количество символов в строке + 2
+        self.vertexes = list(range(self.g_n))
+        #Все возможные потенциальные конгруэнции исходного турнира
+        self.factor_arr = find_all_congruences(self.vertexes, self.g_n)
 
     def gen_by_parts(self, data_part):
         logging.info(f"Process {multiprocessing.current_process().name} started working")
@@ -118,8 +122,8 @@ class Graphs:
                 break
 
             upper_matrix_form = graph.strip()
-            edges_list, adj_list, vertexes = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
-            factor_arr = Tournaments(edges_list, adj_list, vertexes, self.g_n, upper_matrix_form).main_fun()
+            edges_list, adj_list = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
+            factor_arr = Tournaments(edges_list, adj_list, self.vertexes, self.g_n, upper_matrix_form).main_fun(self.factor_arr)
             lattice = Lattice(factor_arr)
             edges, width, height = lattice.main_fun()
             G = nx.Graph(edges)
@@ -138,7 +142,7 @@ class Graphs:
         return list(dicts.values())
 
     def get_data_parts(self, data):
-        num_processes = min(56, len(data))  # Не создавать больше процессов, чем данных
+        num_processes = min(multiprocessing.cpu_count(), len(data))  # Не создавать больше процессов, чем данных
         part_size = max(1, len(data) // num_processes)
         parts = [data[i:i + part_size] for i in range(0, len(data), part_size)]
         return parts
