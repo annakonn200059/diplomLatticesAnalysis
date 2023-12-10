@@ -51,6 +51,31 @@ class FormatInput:
 
         return edges, adjacency_list, nodes_list, upper_matrix_form
 
+    def floyd_warshall(self):
+        # Инициализация матрицы кратчайших путей
+        dist = [[float('inf') for _ in range(self.n)] for _ in range(self.n)]
+        matrix = self.upper_matrix_to_full_matrix()
+
+        for i in range(self.n):
+            for j in range(self.n):
+                if i == j:
+                    dist[i][j] = 0
+                elif int(matrix[i][j]):
+                    dist[i][j] = 1
+
+        # Алгоритм Флойда-Уоршелла
+        for k in range(self.n):
+            for i in range(self.n):
+                for j in range(self.n):
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+
+        return dist
+
+    def tournament_diameter(self):
+        shortest_paths = self.floyd_warshall()
+        diameter = max(max(row) for row in shortest_paths)
+        return diameter
+
     def upperTriangleToEdgeList(self):
         #print(self.upper_matrix_form)
         # количество элементов над главной диагональю матрицы смежности
@@ -76,8 +101,10 @@ class FormatInput:
             copy_cur = cur
             cur = stop
             stop += stop - copy_cur - 1
+
+        diametr = self.tournament_diameter()
         
-        return self.edges_list, self.adjacency_list
+        return self.edges_list, self.adjacency_list, diametr
 
     def upper_matrix_to_full_matrix(self):
         """

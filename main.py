@@ -10,6 +10,13 @@ import logging
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Функция для сравнения ключей
+def sorting_key(key):
+    # Помещаем символ '&' в конец сортировки
+    if key == 'inf':
+        return float('inf')
+    # Преобразуем ключи в числа для правильной сортировки
+    return int(key)
 
 def read_file_to_memory(file_path):
     with open(file_path, 'r') as file:
@@ -74,6 +81,7 @@ class Graphs:
         self.order_dict = {}
         self.height_dict = {}
         self.width_dict = {}
+        self.diametr_dict = {}
         # таблицы для пересечения характеристик и списки графов < 10 штук
         self.height_width_dict = {}  # таблица высота-ширина
         self.height_width_graphs_list = {}
@@ -81,28 +89,21 @@ class Graphs:
         self.width_order_graphs_list = {}
         self.order_height_dict = {}  # таблица кол-во-высота
         self.order_height_graphs_list = {}
+        self.diametr_height_dict = {}
+        self.diametr_height_graphs_list = {}
+        self.diametr_width_dict = {}
+        self.diametr_width_graphs_list = {}
+        self.diametr_order_dict = {}
+        self.diametr_order_graphs_list = {}
         self.res_files_directory = 'out_files/'
 
         self.g_n = v_n
-        # self.processes_parts = {
-        #     3: get_process_tuples(2),
-        #     4: get_process_tuples(4),
-        #     5: get_process_tuples(12),
-        #     6: get_process_tuples(56),
-        #     7: get_process_tuples(456),
-        #     8: get_process_tuples(6880),
-        #     9: get_process_tuples(191536),
-        #     #10: get_process_tuples(9733056),
-        #     #11: get_process_tuples(903753248)
-        # }
-        #self.bytes_per_string = {3: 5, 4: 8, 5: 12, 6: 17, 7: 23, 8: 30, 9: 38, 10: 47, 11: 57}  # количество символов в строке + 2
         self.vertexes = list(range(self.g_n))
         #Все возможные потенциальные конгруэнции исходного турнира
         self.factor_arr = find_all_congruences(self.vertexes, self.g_n)
 
     def gen_by_parts(self, data_part):
         logging.info(f"Process {multiprocessing.current_process().name} started working")
-        #string_bytes = self.bytes_per_string[self.g_n]
         dicts = {
             "height_width": {},
             "height_width_graphs": {},
@@ -110,19 +111,25 @@ class Graphs:
             "width_order_graphs": {},
             "order_height": {},
             "order_height_graphs": {},
+            "diametr_height": {},
+            "diametr_height_graphs": {},
+            "diametr_width": {},
+            "diametr_width_graphs": {},
+            "diametr_order": {},
+            "diametr_order_graphs": {},
             "order": {},
             "height": {},
             "width": {},
+            "diametr": {},
         }
 
         for line in data_part:
             graph = line.strip()
-            # print('graph', graph, 'start', start, 'end', end, 'string_bytes', string_bytes, 'graphs_file.tell()', graphs_file.tell(), 'cond', graphs_file.tell() > string_bytes * (end + 1))
             if not graph:
                 break
 
             upper_matrix_form = graph.strip()
-            edges_list, adj_list = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
+            edges_list, adj_list, diametr = FormatInput(upper_matrix_form, self.g_n).upperTriangleToEdgeList()
             factor_arr = Tournaments(edges_list, adj_list, self.vertexes, self.g_n, upper_matrix_form).main_fun(self.factor_arr)
             lattice = Lattice(factor_arr)
             edges, width, height = lattice.main_fun()
@@ -132,12 +139,15 @@ class Graphs:
             fill_dict_with_int_values(dicts["order"], order)
             fill_dict_with_int_values(dicts["height"], height)
             fill_dict_with_int_values(dicts["width"], width)
+            fill_dict_with_int_values(dicts["diametr"], diametr)
 
             fill_characteristics_tables(height, width, 'height', 'width', dicts, upper_matrix_form)
             fill_characteristics_tables(width, order, 'width', 'order', dicts, upper_matrix_form)
             fill_characteristics_tables(order, height, 'order', 'height', dicts, upper_matrix_form)
+            fill_characteristics_tables(diametr, height, 'diametr', 'height', dicts, upper_matrix_form)
+            fill_characteristics_tables(diametr, width, 'diametr', 'width', dicts, upper_matrix_form)
+            fill_characteristics_tables(diametr, order, 'diametr', 'order', dicts, upper_matrix_form)
 
-        #print('Done ', start, '-', end)
         logging.info(f"Process {multiprocessing.current_process().name} finished working")
         return list(dicts.values())
 
@@ -148,7 +158,6 @@ class Graphs:
         return parts
 
     def find_all_characteristics(self):
-        #multiprocessing.cpu_count()
         file_path = f"in_files/{self.g_n}in.txt"
         file_data = read_file_to_memory(file_path)
 
@@ -158,8 +167,16 @@ class Graphs:
         pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
         res = pool.map(self.gen_by_parts, data_parts)
 
-        for (height_width_dict, height_width_graphs_list, width_order_dict, width_order_graphs_list, order_height_dict,
-             order_height_graphs_list, order_dict, height_dict, width_dict) in res:
+        for (height_width_dict, height_width_graphs_list,
+             width_order_dict, width_order_graphs_list,
+             order_height_dict, order_height_graphs_list,
+             diametr_height_dict, diametr_height_graphs_list,
+             diametr_width_dict, diametr_width_graphs_list,
+             diametr_order_dict, diametr_order_graphs_list,
+             order_dict, height_dict, width_dict, diametr_dict) in res:
+
+            for key, value in diametr_dict.items():
+                fill_dict_with_int_values(self.diametr_dict, key, value)
 
             for key, value in order_dict.items():
                 fill_dict_with_int_values(self.order_dict, key, value)
@@ -188,6 +205,24 @@ class Graphs:
                 if graphs_value is not None:
                     fill_dict_with_list_values(self.order_height_graphs_list, graphs_key, graphs_value)
 
+            for key, value in diametr_height_dict.items():
+                fill_dict_with_int_values(self.diametr_height_dict, key, value)
+            for graphs_key, graphs_value in diametr_height_graphs_list.items():
+                if graphs_value is not None:
+                    fill_dict_with_list_values(self.diametr_height_graphs_list, graphs_key, graphs_value)
+
+            for key, value in diametr_width_dict.items():
+                fill_dict_with_int_values(self.diametr_width_dict, key, value)
+            for graphs_key, graphs_value in diametr_width_graphs_list.items():
+                if graphs_value is not None:
+                    fill_dict_with_list_values(self.diametr_width_graphs_list, graphs_key, graphs_value)
+
+            for key, value in diametr_order_dict.items():
+                fill_dict_with_int_values(self.diametr_order_dict, key, value)
+            for graphs_key, graphs_value in diametr_order_graphs_list.items():
+                if graphs_value is not None:
+                    fill_dict_with_list_values(self.diametr_order_graphs_list, graphs_key, graphs_value)
+
         for key, val in self.height_width_graphs_list.items():
             if self.height_width_dict[key] > 10:
                 self.height_width_graphs_list[key] = None
@@ -200,33 +235,52 @@ class Graphs:
             if self.order_height_dict[key] > 10:
                 self.order_height_graphs_list[key] = None
 
+        for key, val in self.diametr_height_graphs_list.items():
+            if self.diametr_height_dict[key] > 10:
+                self.diametr_height_graphs_list[key] = None
+
+        for key, val in self.diametr_width_graphs_list.items():
+            if self.diametr_width_dict[key] > 10:
+                self.diametr_width_graphs_list[key] = None
+
+        for key, val in self.diametr_order_graphs_list.items():
+            if self.diametr_order_dict[key] > 10:
+                self.diametr_order_graphs_list[key] = None
+
         return
 
     def saveGeneralCharachteristicsToFiles(self):
         order_dict = {int(k): v for k, v in self.order_dict.items()}
         height_dict = {int(k): v for k, v in self.height_dict.items()}
         width_dict = {int(k): v for k, v in self.width_dict.items()}
+        diametr_dict = {'inf' if k == 'inf' else int(k): v for k, v in self.diametr_dict.items()}
 
         order_dict = dict(sorted(order_dict.items()))
         height_dict = dict(sorted(height_dict.items()))
         width_dict = dict(sorted(width_dict.items()))
+        diametr_dict = dict(sorted(diametr_dict.items(), key=lambda item: sorting_key(item[0])))
 
         target = self.res_files_directory + str(self.g_n) + '_characteristics.txt'
         with open(target, encoding='UTF-8', mode='w') as fileCharacteristics:
-            fileCharacteristics.write('Порядок:\n')
+            fileCharacteristics.write('Порядок решетки:\n')
             for i in order_dict:
                 if order_dict[i]:
                     fileCharacteristics.write(str(i) + ': ' + str(order_dict[i]) + '\n')
 
-            fileCharacteristics.write('Ширина:\n')
+            fileCharacteristics.write('Ширина решетки:\n')
             for i in width_dict:
                 if width_dict[i]:
                     fileCharacteristics.write(str(i) + ': ' + str(width_dict[i]) + '\n')
 
-            fileCharacteristics.write('Высота:\n')
+            fileCharacteristics.write('Высота решетки:\n')
             for i in height_dict:
                 if height_dict[i]:
                     fileCharacteristics.write(str(i) + ': ' + str(height_dict[i]) + '\n')
+
+            fileCharacteristics.write('Диаметр турнира:\n')
+            for i in diametr_dict:
+                if diametr_dict[i]:
+                    fileCharacteristics.write(str(i) + ': ' + str(diametr_dict[i]) + '\n')
 
     def save_sorted_int_table_to_file(self, dict_to_sort, filename):
         sorted_items = sorted(dict_to_sort.items(), key=lambda item: item[1])
@@ -248,10 +302,16 @@ class Graphs:
         self.save_sorted_int_table_to_file(self.height_width_dict, 'table_height_width.txt')
         self.save_sorted_int_table_to_file(self.width_order_dict, 'table_width_order.txt')
         self.save_sorted_int_table_to_file(self.order_height_dict, 'table_order_height.txt')
+        self.save_sorted_int_table_to_file(self.diametr_height_dict, 'table_diametr_height.txt')
+        self.save_sorted_int_table_to_file(self.diametr_width_dict, 'table_diametr_width.txt')
+        self.save_sorted_int_table_to_file(self.diametr_order_dict, 'table_diametr_order.txt')
 
         self.save_sorted_by_len_graph_dict_to_file(self.height_width_graphs_list, 'height_width_graphs_list.txt')
         self.save_sorted_by_len_graph_dict_to_file(self.width_order_graphs_list, 'width_order_graphs_list.txt')
         self.save_sorted_by_len_graph_dict_to_file(self.order_height_graphs_list, 'order_height_graphs_list.txt')
+        self.save_sorted_by_len_graph_dict_to_file(self.diametr_height_graphs_list, 'diametr_height_graphs_list.txt')
+        self.save_sorted_by_len_graph_dict_to_file(self.diametr_width_graphs_list, 'diametr_width_graphs_list.txt')
+        self.save_sorted_by_len_graph_dict_to_file(self.diametr_order_graphs_list, 'diametr_order_graphs_list.txt')
 
         self.saveGeneralCharachteristicsToFiles()
 
